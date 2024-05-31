@@ -1,5 +1,4 @@
 import News from './component/News'
-import './App.css'
 
 function App() {
 
