@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { Container, Row, Col, Card, Form, Button, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 
-const apiKey = "ad33287d89224f6f95a9c641c5949259";
+const apiKey = process.env.REACT_APP_NEWS_API_KEY;
 
 class NewsApp extends Component {
   constructor(props) {
