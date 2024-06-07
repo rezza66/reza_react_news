@@ -4,7 +4,7 @@ import axios from 'axios';
 
 const apiKey = import.meta.env.VITE_API_KEY;
 
-class NewsApp extends Component {
+export default class NewsApp extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -64,18 +64,26 @@ class NewsApp extends Component {
           className="mb-4"
         />
         {loading ? (
-          <Spinner className='position-absolute top-50 start-50' animation="border" role="status">
-            <span className="sr-only">Loading...</span>
-          </Spinner>
+          <div className='d-flex justify-content-center'>
+            <Spinner animation="border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+          </div>
         ) : (
           <Row>
             {news.map((article, index) => (
               <Col key={index} md={4} className="mb-4">
                 <Card>
-                  <Card.Img variant="top" src={article.urlToImage || 'https://via.placeholder.com/150'} onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150'; }} />
+                  <Card.Img 
+                    variant="top" 
+                    src={article.urlToImage || 'https://via.placeholder.com/150'} 
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150'; }} 
+                  />
                   <Card.Body>
                     <Card.Title>{article.title}</Card.Title>
-                    <Card.Text>{article.description ? `${article.description.substring(0, 100)}...` : 'No description available'}</Card.Text>
+                    <Card.Text>
+                      {article.description ? `${article.description.substring(0, 100)}...` : 'No description available'}
+                    </Card.Text>
                     <Button variant="primary" href={article.url} target="_blank" rel="noopener noreferrer">Read more</Button>
                   </Card.Body>
                   <Card.Footer>
@@ -90,5 +98,3 @@ class NewsApp extends Component {
     );
   }
 }
-
-export default NewsApp;
