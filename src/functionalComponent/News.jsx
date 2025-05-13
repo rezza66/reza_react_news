@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Form, Button, Spinner } from 'react-bootstrap';
+import { 
+  Container, 
+  Row, 
+  Col, 
+  Card, 
+  Form, 
+  Button, 
+  Spinner 
+} from 'react-bootstrap';
 import axios from 'axios';
 
-const apiKey = import.meta.env.VITE_API_KEY;
+const API_KEY = import.meta.env.VITE_API_KEY;
+const BASE_URL = 'https://newsapi.org/v2';
+const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/150';
+const DEBOUNCE_DELAY = 500;
 
 const NewsApp = () => {
   const [news, setNews] = useState([]);
@@ -11,17 +22,23 @@ const NewsApp = () => {
   const [timeoutId, setTimeoutId] = useState(null);
 
   const fetchNews = useCallback(async () => {
-    const url = searchTerm
-      ? `https://newsapi.org/v2/everything?q=${searchTerm}&apiKey=${apiKey}`
-      : `https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}`;
+    const endpoint = searchTerm ? '/everything' : '/top-headlines';
+    const params = searchTerm 
+      ? { q: searchTerm } 
+      : { country: 'us' };
+    
+    const url = `${BASE_URL}${endpoint}?${new URLSearchParams({
+      ...params,
+      apiKey: API_KEY
+    })}`;
 
     try {
       setLoading(true);
-      const response = await axios.get(url);
-      const articles = response.data.articles;
+      const { data: { articles } } = await axios.get(url);
       setNews(articles);
     } catch (error) {
       console.error("Error fetching news:", error);
+      // Consider adding error state to show to users
     } finally {
       setLoading(false);
     }
@@ -32,18 +49,62 @@ const NewsApp = () => {
   }, [fetchNews]);
 
   useEffect(() => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    const newTimeoutId = setTimeout(fetchNews, 500);
+    if (timeoutId) clearTimeout(timeoutId);
+    
+    const newTimeoutId = setTimeout(fetchNews, DEBOUNCE_DELAY);
     setTimeoutId(newTimeoutId);
 
     return () => clearTimeout(newTimeoutId);
   }, [searchTerm, fetchNews]);
 
-  const handleSearchChange = event => {
-    setSearchTerm(event.target.value);
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value.trim());
   };
+
+  const handleImageError = (event) => {
+    event.target.onerror = null;
+    event.target.src = PLACEHOLDER_IMAGE;
+  };
+
+  const truncateText = (text, maxLength = 100) => {
+    if (!text) return 'No description available';
+    return `${text.substring(0, maxLength)}...`;
+  };
+
+  const renderNewsCard = (article, index) => (
+    <Col key={`${article.url}-${index}`} md={4} className="mb-4">
+      <Card className="h-100">
+        <Card.Img 
+          variant="top" 
+          src={article.urlToImage || PLACEHOLDER_IMAGE} 
+          onError={handleImageError}
+          alt={article.title}
+          height="200"
+          style={{ objectFit: 'cover' }}
+        />
+        <Card.Body className="d-flex flex-column">
+          <Card.Title>{article.title}</Card.Title>
+          <Card.Text className="flex-grow-1">
+            {truncateText(article.description)}
+          </Card.Text>
+          <Button 
+            variant="primary" 
+            href={article.url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="mt-auto"
+          >
+            Read more
+          </Button>
+        </Card.Body>
+        <Card.Footer>
+          <small className="text-muted">
+            {article.author || 'Unknown author'} - {new Date(article.publishedAt).toLocaleDateString()}
+          </small>
+        </Card.Footer>
+      </Card>
+    </Col>
+  );
 
   return (
     <Container className="py-4">
@@ -52,36 +113,21 @@ const NewsApp = () => {
         placeholder="Search News"
         onChange={handleSearchChange}
         className="mb-4"
+        aria-label="Search news articles"
       />
+      
       {loading ? (
-        <div className='d-flex justify-content-center'>
+        <div className="d-flex justify-content-center my-5">
           <Spinner animation="border" role="status">
             <span className="visually-hidden">Loading...</span>
           </Spinner>
         </div>
       ) : (
         <Row>
-          {news.map((article, index) => (
-            <Col key={index} md={4} className="mb-4">
-              <Card>
-                <Card.Img 
-                  variant="top" 
-                  src={article.urlToImage || 'https://via.placeholder.com/150'} 
-                  onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150'; }} 
-                />
-                <Card.Body>
-                  <Card.Title>{article.title}</Card.Title>
-                  <Card.Text>
-                    {article.description ? `${article.description.substring(0, 100)}...` : 'No description available'}
-                  </Card.Text>
-                  <Button variant="primary" href={article.url} target="_blank" rel="noopener noreferrer">Read more</Button>
-                </Card.Body>
-                <Card.Footer>
-                  <small className="text-muted">{article.author} - {new Date(article.publishedAt).toLocaleDateString()}</small>
-                </Card.Footer>
-              </Card>
-            </Col>
-          ))}
+          {news.length > 0 
+            ? news.map(renderNewsCard)
+            : <Col className="text-center py-5">No news found</Col>
+          }
         </Row>
       )}
     </Container>
