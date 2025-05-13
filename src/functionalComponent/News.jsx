@@ -1,17 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Container, 
-  Row, 
-  Col, 
-  Card, 
-  Form, 
-  Button, 
-  Spinner 
-} from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 
-const API_KEY = import.meta.env.VITE_API_KEY;
-const BASE_URL = 'https://newsapi.org/v2';
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/150';
 const DEBOUNCE_DELAY = 500;
 
@@ -21,28 +11,21 @@ const NewsApp = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [timeoutId, setTimeoutId] = useState(null);
 
-  const fetchNews = useCallback(async () => {
-    const endpoint = searchTerm ? '/everything' : '/top-headlines';
-    const params = searchTerm 
-      ? { q: searchTerm } 
-      : { country: 'us' };
-    
-    const url = `${BASE_URL}${endpoint}?${new URLSearchParams({
-      ...params,
-      apiKey: API_KEY
-    })}`;
+const fetchNews = useCallback(async () => {
+  const baseURL = import.meta.env.VITE_NEWS_API_BASE_URL;
+  const url = `${baseURL}${searchTerm ? `?q=${searchTerm}` : ''}`;
 
-    try {
-      setLoading(true);
-      const { data: { articles } } = await axios.get(url);
-      setNews(articles);
-    } catch (error) {
-      console.error("Error fetching news:", error);
-      // Consider adding error state to show to users
-    } finally {
-      setLoading(false);
-    }
-  }, [searchTerm]);
+  try {
+    setLoading(true);
+    const { data: { articles } } = await axios.get(url);
+    setNews(articles);
+  } catch (error) {
+    console.error("Error fetching news:", error);
+  } finally {
+    setLoading(false);
+  }
+}, [searchTerm]);
+
 
   useEffect(() => {
     fetchNews();
@@ -50,10 +33,8 @@ const NewsApp = () => {
 
   useEffect(() => {
     if (timeoutId) clearTimeout(timeoutId);
-    
     const newTimeoutId = setTimeout(fetchNews, DEBOUNCE_DELAY);
     setTimeoutId(newTimeoutId);
-
     return () => clearTimeout(newTimeoutId);
   }, [searchTerm, fetchNews]);
 
